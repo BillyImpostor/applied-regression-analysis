@@ -5,23 +5,20 @@ date: "2026-02-25"
 output: html_document
 ---
 
-# PERTEMUAN 1 & 2
-## REGRESI LINEAR SEDERHANA MULAI DARI UJI ASUMSI, INTERFERENSIAL MODEL, DAN DIAGNOSTIC CHECKING
+# PERTEMUAN 1 & 2: REGRESI LINEAR SEDERHANA MULAI DARI UJI ASUMSI, INTERFERENSIAL MODEL, DAN DIAGNOSTIC CHECKING
 ```{r}
 # Load Dataset
 library(openxlsx)
-df <- read.xlsx(
-  "C:\\Users\\BiliL\\Downloads\\Project Coding GitHub\\
-  Praktikum_ART\\applied-regression-analysis\\data\\
-  Pertemuan 1 - Dataset.xlsx", sheet = 1
+df = read.xlsx(
+"C:\\Users\\BiliL\\Downloads\\Project Coding GitHub\\Praktikum_ART\\applied-regression-analysis\\data\\Pertemuan 1 - Dataset.xlsx", sheet = 1
 )
 head(df)
 ```
 
 ```{r}
 # Asumsi Linearitas Pakai Scatter Plot
-x <- df$Suhu_Ruangan
-y <- df$Cacat_Produksi
+x = df$Suhu_Ruangan
+y = df$Cacat_Produksi
 plot(x, y, main = "Scatter Plot Linearitas",
   ylab = "Jumlah Cacat Produksi",
   xlab = "Rata-rata Suhu Ruangan", pch = 19
@@ -36,13 +33,36 @@ abline(lm(y ~ x - 1), col = "red")
 
 ```{r}
 # Nilai R-Square Dengan Intercept
-model1 <- lm(formula = y ~ x, data = df)
+model1 = lm(formula = y ~ x, data = df)
 summary(model1)$r.squared
 
 # Nilai R-Square Tanpa Intercept
-model2 <- lm(formula = y ~ x - 1, data = df)
+model2 = lm(formula = y ~ x - 1, data = df)
 summary(model2)$r.squared
 ```
+
+```{r}
+# Mean Dari Y Hat (Model Dengan Intercept)
+mean(fitted.values(model1))
+
+# Mean Dari Y Hat (Model Tanpa Intercept)
+mean(fitted.values(model2))
+
+# Mean Dari Y
+mean(y)
+
+# Mean Dari X
+mean(x)
+```
+
+```{r}
+# Mean Residual (Dengan Intercept)
+mean(residuals(model1))
+
+# Mean Residual (Tanpa Intercept)
+mean(residuals(model2))
+```
+
 
 ```{r}
 # Summary Model
@@ -75,10 +95,106 @@ bptest(model1)
 # Autokorelasi Error
 library(car)
 durbinWatsonTest(model1)
+
+# Autokorelasi Error (Lebih Singkat)
 dwtest(model1)
 ```
 
-# PERTEMUAN 3
+#PERTEMUAN 3: REGRESI LINEAR BERGANDA & DUMMY VARIABLE
 ```{r}
-# Soon
+# Load Dataset
+library(openxlsx)
+df3 = read.xlsx("C:\\Users\\BiliL\\Downloads\\Project Coding GitHub\\Praktikum_ART\\applied-regression-analysis\\data\\Pertemuan 3 - Dataset.xlsx", sheet = 1)
+df3
 ```
+
+```{r}
+# Variabel Unik
+unique(df3$Sex)
+
+# Variabel Independen
+y = df3$Whole.weight
+
+# Variabel Dependen (Ambil Data Frame Selain Whole Weight [-5])
+x = df3[, -5]
+```
+
+```{r}
+# Asumsi Linearitas (Matriks Scatterplot)
+pairs(df3[,-1], main = "Matriks Scatterplot Data Numerik Abalone", pch = 19)
+```
+
+```{r}
+# Nilai R-Square
+x_num = x[,-1]
+r2 = data.frame(matrix(ncol = ncol(x_num), nrow = 1))
+colnames(r2) = colnames(x_num)
+for (i in 1:ncol(x_num)){
+  r2[i] = summary(lm(y ~ x_num[,i]))$r.squared
+}
+print(r2)
+```
+
+```{r}
+# Dummy Variable (One Hot Encoding) Dengan Remove First Dummy
+library(fastDummies)
+df3 = dummy_cols(df3, select_columns = "Sex", remove_first_dummy = TRUE)
+df3
+```
+
+```{r}
+# Model Rege=resi (Metode Backward)
+model0 = lm(Whole.weight ~ ., data = df3[,-1])
+model_backward = step(model0, direction = "backward")
+summary(model_backward)
+```
+
+```{r}
+# Model Regresi Metode Enter (Model 1)
+df3_modelling <- df3[,-1]
+model1 = lm(Whole.weight ~ ., data = df3_modelling)
+summary(model1)
+sqrt(summary(model1)$r.squared)
+```
+
+```{r}
+# Model 2 (Drop Rings)
+library(dplyr)
+df3_modelling <- select(df3_modelling, -Rings)
+model2 = lm(Whole.weight ~ ., data = df3_modelling)
+summary(model2)
+sqrt(summary(model2)$r.squared)
+```
+
+```{r}
+# Model 3 (Drop Length)
+df3_modelling <- select(df3_modelling, -Length)
+model3 = lm(Whole.weight ~ ., data = df3_modelling)
+summary(model3)
+sqrt(summary(model3)$r.squared)
+```
+
+```{r}
+# Model 4 (Drop Sex)
+df3_modelling <- select(df3_modelling, -c(Sex_Infant, Sex_Male))
+model4 = lm(Whole.weight ~ ., data = df3_modelling)
+summary(model4)
+sqrt(summary(model4)$r.squared)
+```
+
+```{r}
+# Model 5 (Drop Height)
+df3_modelling <- select(df3_modelling, -Height)
+model5 = lm(Whole.weight ~ ., data = df3_modelling)
+summary(model5)
+sqrt(summary(model5)$r.squared)
+```
+
+```{r}
+# Model 6 (Drop Diameter)
+df3_modelling <- select(df3_modelling, -Diameter)
+model6 = lm(Whole.weight ~ ., data = df3_modelling)
+summary(model6)
+sqrt(summary(model6)$r.squared)
+```
+
