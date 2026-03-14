@@ -1,0 +1,34 @@
+---
+title: "Teori_ART"
+author: "Cheisa Billy Putra Antoni"
+date: "2026-03-14"
+output: html_document
+---
+
+# ART TEORI
+```{r}
+library(openxlsx)
+df2 <- read.xlsx("C:\\Users\\BiliL\\Downloads\\Project Coding GitHub\\Praktikum_ART\\Book1.xlsx", sheet = 2)
+head(df2)
+```
+
+```{r}
+# Asumsi Linearitas Pakai Scatter Plot
+x <- df2$x
+y <- df2$y
+model3 <- lm(formula = y ~ x - 1, data = df2)
+plot(fitted.values(model3), residuals(model3), main = "Plot Residual",
+  ylab = "Residual",
+  xlab = "Fitted Values", pch = 19
+)
+
+# Garis Fit Dengan Intercept
+# abline(lm(y ~ x), col = "blue")
+
+# Garis Fit Tanpa Intercept
+abline(lm(fitted.values(model3) ~ residuals(model3) - 1), col = "red")
+
+# Hitung jumlah residual
+#res <- residuals(model3)
+#sum(res)
+```
