@@ -1,0 +1,519 @@
+---
+title: "Laprak UTS Praktikum Analisis Regresi Terapan"
+author: "Cheisa Billy Putra Antoni"
+date: "2026-04-19"
+output: html_document
+---
+
+# SOAL NOMOR 1
+```{r}
+# Load Dataset 1
+library(readxl)
+df1 = read_xlsx("C:/Users/BiliL/Downloads/Project Coding GitHub/Praktikum_ART/applied-regression-analysis/data/Dataset No 1.xlsx")
+head(df1)
+```
+
+```{r}
+# Ganti Nama Kolom
+library(dplyr)
+
+df1 <- df1 %>%
+  rename("Luas_Sawit" = "Luas Sawit (ha)") %>%
+  rename("Tenaga_Kerja" = "Tenaga Kerja")
+```
+
+## NOMOR 1 BAGIAN A
+```{r}
+# Buat Variabel Baru
+library(dplyr)
+df1 <- df1 %>%
+  arrange(Tahun) %>%
+  mutate(
+    Perkembangan_Luas = Luas_Sawit - lag(Luas_Sawit),
+    Perkembangan_Pekerja = Tenaga_Kerja - lag(Tenaga_Kerja)
+  )
+head(df1)
+```
+
+```{r}
+# Hapus Baris Pertama
+df1 <- df1[-1, ]
+head(df1)
+```
+
+## NOMOR 1 BAGIAN B
+```{r}
+# Deklarasi Variabel
+x <- df1$Perkembangan_Luas
+y <- df1$Perkembangan_Pekerja
+```
+
+```{r fig.width = 12, fig.height = 6}
+# Asumsi Linearitas
+options(scipen = 999)
+plot(x, y, main = "Scatterplot Uji Linearitas",
+     xlab = "Perkembangan Luas Lahan Sawit (ha)", ylab = "Perkembangan Tenaga Kerja", pch = 19)
+abline(lm(y ~ x), col = "blue")
+
+model1 = lm(formula = y ~ x, data = df1)
+summary(model1)$r.squared
+```
+
+## NOMOR 1 BAGIAN C
+```{r}
+# Pembentukan Model
+model1 = lm(formula = y ~ x, data = df1)
+cat("Nilai Korelasi (R) = ", cor(x, y))
+cat("\n")
+summary(model1)
+```
+
+## NOMOR 1 BAGIAN D
+```{r fig.width = 12, fig.height = 6}
+# Diagnostic Checking Linearitas
+plot(x, y, main = "Scatterplot Uji Linearitas Model 1",
+     xlab = "Perkembangan Luas Lahan Sawit (ha)", ylab = "Perkembangan Tenaga Kerja", pch = 19)
+abline(lm(y ~ x), col = "blue")
+```
+
+```{r fig.width = 12, fig.height = 6}
+# Diagnostic Checking Normalitas Residual
+res1 = model1$residual
+hist(res1, main = "Histogram Residual Model 1", 
+     xlab = "Residual", ylab = "Frekuensi", col = "skyblue")
+
+qqnorm(res1, main = "Normal Q-Q Plot Residual Model 1")
+qqline(res1)
+
+shapiro.test(res1)
+```
+
+```{r fig.width = 12, fig.height = 6}
+# Diagnostic Checking Homoskedastisitas
+plot(model1, 1)
+
+library(lmtest)
+bptest(model1)
+```
+
+```{r}
+# Diagnostic Checking Autokorelasi
+library(car)
+durbinWatsonTest(model1)
+```
+
+# SOAL NOMOR 2
+```{r}
+# Load Dataset 2
+df2 = read.csv("C:/Users/BiliL/Downloads/Project Coding GitHub/Praktikum_ART/applied-regression-analysis/data/data stunting nomor 2 & 3.csv")
+head(df2)
+```
+
+```{r}
+# Membuat Data Frame Baru
+df2_reg1 <- df2[, c("stunting", "bblr", "posyandu", "kemiskinan", "suplemen", "wilayah", "kalori_harian", "nakes")]
+head(df2_reg1)
+```
+
+## NOMOR 2 BAGIAN A
+```{r}
+# Unique Values
+unique(df2_reg1$wilayah)
+```
+
+```{r}
+# Variabel Dummy
+df2_reg1$wilayah_Pesisir <- ifelse(df2_reg1$wilayah == "Pesisir", 1, 0)
+df2_reg1$wilayah_Urban <- ifelse(df2_reg1$wilayah == "Urban", 1, 0)
+df2_reg1$wilayah_Pedesaan <- ifelse(df2_reg1$wilayah == "Pedesaan", 1, 0)
+df2_reg1 <- subset(df2_reg1, select = -c(wilayah))
+head(df2_reg1)
+```
+
+```{r}
+# Deklarasi Variabel
+X <- df2_reg1[,-1]
+y <- df2_reg1$stunting
+```
+
+```{r fig.width = 12, fig.height = 10}
+# Asumsi Linearitas
+library(ggplot2) 
+library(GGally)
+ggpairs(df2_reg1, title = "Matriks Scatterplot Linearitas", 
+        axisLabels = "show")
+cor(df2_reg1[,-1], method = "pearson")
+R2 = c()
+
+# Membuat Dataframe R-Squared
+R2 = data.frame(matrix(ncol = ncol(X), nrow = 1))
+colnames(R2) = colnames(X)
+for (i in 1:ncol(X)){
+  R2[i] = summary(lm(y ~ X[,i]))$r.squared
+}
+print(R2)
+```
+
+```{r}
+# Model Criterion Function
+library(olsrr)
+
+# bentuk model dengan parameter yg lengkap
+full_model <- lm(stunting ~ ., data = df2_reg1)
+
+ # membuat function kriteria pemilihan model
+model_criterion <- function(data, model, full_model){
+  
+  rss <- sum(residuals(model)^2)
+  n <- nrow(data)
+  k <- length(coef(model))
+  rss_full <- sum(residuals(full_model)^2)
+  k_full <- length(coef(full_model))
+  mse_full <- rss_full/(n - k_full)
+
+  cp <- (rss/mse_full) - (n - 2*k)
+  aic <- n*log(rss/n) + 2*k
+  sbc <- n*log(rss/n) + k*log(n)
+  press <- ols_press(model)
+  
+  r <- sqrt(summary(model)$r.squared)
+  r.square <- summary(model)$r.squared
+  adj.r.square <- summary(model)$adj.r.squared
+  se <- summary(model)$sigma
+  
+  result <- data.frame(
+    R = r,
+    R_Square = r.square,
+    Adj_R_Square = adj.r.square,
+    Residual_SE = se,
+    AIC = aic,
+    SBC = sbc,
+    CP_Mallows = cp,
+    PRESS = press
+  )
+  
+  print("Model Criterion:")
+  return(result)
+}
+```
+
+```{r}
+# Model 1
+model1 = lm(stunting ~ ., data = df2_reg1)
+summary(model1)
+model_criterion(df2_reg1, model1, full_model)
+```
+
+```{r}
+# Model 2 (Drop posyandu)
+library(dplyr)
+df2_reg1 = select(df2_reg1, -posyandu)
+model2 = lm(stunting ~ ., data = df2_reg1)
+summary(model2)
+model_criterion(df2_reg1, model2, full_model)
+```
+
+```{r}
+# Model 3 (Drop wilayah)
+library(dplyr)
+df2_reg1 = select(df2_reg1, -c(wilayah_Pesisir, wilayah_Urban, wilayah_Pedesaan))
+model3 = lm(stunting ~ ., data = df2_reg1)
+summary(model3)
+model_criterion(df2_reg1, model3, full_model)
+```
+
+```{r}
+# Model 4 (Drop nakes)
+library(dplyr)
+df2_reg1 = select(df2_reg1, -nakes)
+model4 = lm(stunting ~ ., data = df2_reg1)
+summary(model4)
+model_criterion(df2_reg1, model4, full_model)
+```
+
+```{r}
+# Model 5 (Drop suplemen)
+library(dplyr)
+df2_reg1 = select(df2_reg1, -suplemen)
+model5 = lm(stunting ~ ., data = df2_reg1)
+summary(model5)
+model_criterion(df2_reg1, model5, full_model)
+```
+
+```{r}
+# Uji Overall
+overall_p <- function(my_model) {
+  f <- summary(my_model)$fstatistic
+  p <- pf(f[1],f[2],f[3],lower.tail=F)
+  attributes(p) <- NULL
+  return(p)
+}
+overall_test = data.frame(matrix(ncol = 2, nrow = 5))
+colnames(overall_test) = c("Model", "Overall Test's P-Value")
+overall_test$Model = c("Model 1", "Model 2", "Model 3", "Model 4", "Model 5")
+overall_test$P.Value = c(overall_p(model1),
+                         overall_p(model2),
+                         overall_p(model3),
+                         overall_p(model4),
+                         overall_p(model5))
+print(overall_test[,-2])
+```
+
+```{r}
+# Uji Parsial untuk Konstanta
+intercept_p <- function(my_model) {
+  p <- summary(my_model)$coefficients[1,4]
+  return(p)
+}
+partial_test = data.frame(matrix(ncol = 2, nrow = 5))
+colnames(partial_test) = c("Model", "Intercept's P-Value")
+partial_test$Model = c("Model 1", "Model 2", "Model 3", "Model 4", "Model 5")
+partial_test$P.Value = c(intercept_p(model1),
+                         intercept_p(model2),
+                         intercept_p(model3),
+                         intercept_p(model4),
+                         intercept_p(model5))
+print(partial_test[,-2])
+```
+
+```{r}
+# Uji Parsial untuk Koefisien
+coef_p <- function(my_model) {
+  p <- summary(my_model)$coefficients[-1,4]
+  return(round(p, 3))
+}
+coef_p(model1)
+coef_p(model2)
+coef_p(model3)
+coef_p(model4)
+coef_p(model5)
+```
+
+## NOMOR 2 BAGIAN B
+```{r}
+# Tidak ada perhitungan
+```
+
+
+## NOMOR 2 BAGIAN C
+```{r}
+# Data Testing
+data_test <- data.frame(
+  stunting = c(25.7, 38.3, 19.7),
+  bblr = c(2.5, 9.2, 5),
+  posyandu = c(91.5, 40.7, 33.8),
+  nakes = c(2.83, 3.71, 5.27),
+  kalori_harian = c(2161, 1806, 2167),
+  kemiskinan = c(16.9, 27.1, 27.7),
+  suplemen = c(96.4, 62.7, 43),
+  wilayah_Pesisir = c(1, 0, 1),
+  wilayah_Urban = c(0, 0, 0),
+  wilayah_Pedesaan = c(0, 1, 0))
+
+pred1 <- predict(model1, data_test)
+pred2 <- predict(model2, data_test)
+pred3 <- predict(model3, data_test)
+pred4 <- predict(model4, data_test)
+pred5 <- predict(model5, data_test)
+
+hasil <- data.frame(
+  Aktual = data_test$stunting,
+  Model_1 = pred1,
+  Model_2 = pred2,
+  Model_3 = pred3,
+  Model_4 = pred4,
+  Model_5 = pred5)
+hasil
+```
+
+```{r}
+# Hitung MSE per model
+mse <- function(actual, pred) {
+  mean((actual - pred)^2)}
+
+cat("Model 1 = ", mse(c(25.7, 38.3, 19.7), c(20.03139, 35.17292, 25.71593)), "\n")
+cat("Model 2 = ", mse(c(25.7, 38.3, 19.7), c(20.06047, 35.15738, 25.68725)), "\n")
+cat("Model 3 = ", mse(c(25.7, 38.3, 19.7), c(20.15102, 34.80155, 26.04541)), "\n")
+cat("Model 4 = ", mse(c(25.7, 38.3, 19.7), c(20.16747, 34.77882, 25.86571)), "\n")
+cat("Model 5 = ", mse(c(25.7, 38.3, 19.7), c(20.70247, 34.64915, 25.27487)))
+```
+
+
+## NOMOR 2 BAGIAN D
+```{r}
+# Perhitungan kriteria sudah dilakukan pada bagian A menggunakan function
+```
+
+# SOAL NOMOR 3
+```{r}
+# Unique Values
+unique(df2$wilayah)
+unique(df2$status_pangan)
+```
+
+```{r}
+# Variabel Dummy
+df2$wilayah_Pesisir <- ifelse(df2$wilayah == "Pesisir", 1, 0)
+df2$wilayah_Urban <- ifelse(df2$wilayah == "Urban", 1, 0)
+df2$wilayah_Pedesaan <- ifelse(df2$wilayah == "Pedesaan", 1, 0)
+df2 <- subset(df2, select = -c(wilayah))
+
+df2$status_pangan_Sentra <- ifelse(df2$status_pangan == "Sentra", 1, 0)
+df2 <- subset(df2, select = -c(status_pangan))
+
+head(df2)
+```
+
+## NOMOR 3 BAGIAN A
+```{r}
+# Deklarasi Variabel
+X <- df2[,-1]
+y <- df2$stunting
+```
+
+```{r}
+# Membuat Dataframe R-Squared
+cor(df2[,-1], method = "pearson")
+R2 = c()
+R2 = data.frame(matrix(ncol = ncol(X), nrow = 1))
+colnames(R2) = colnames(X)
+for (i in 1:ncol(X)){
+  R2[i] = summary(lm(y ~ X[,i]))$r.squared
+}
+R2_t <- data.frame(
+  Variabel = colnames(R2),
+  R_squared = as.numeric(R2[1, ]))
+R2_sorted <- R2_t[order(-R2_t$R_squared), ]
+print(R2_sorted)
+```
+
+```{r}
+# Membuat Data Frame Baru
+df3 <- df2[, c("stunting", "kalori_harian", "sanitasi", "kemiskinan", "pola_asuh", "kurus_akut", "bblr", "air_bersih")]
+head(df3)
+```
+
+## NOMOR 3 BAGIAN B
+```{r}
+# Deklarasi Variabel
+X <- df3[,-1]
+y <- df3$stunting
+```
+
+```{r fig.width = 12, fig.height = 10}
+# Asumsi Linearitas
+library(ggplot2) 
+library(GGally)
+ggpairs(df3, title = "Matriks Scatterplot Stunting", 
+        axisLabels = "show")
+cor(df3[,-1], method = "pearson")
+R2 = c()
+
+# Membuat Dataframe R-Squared
+R2 = data.frame(matrix(ncol = ncol(X), nrow = 1))
+colnames(R2) = colnames(X)
+for (i in 1:ncol(X)){
+  R2[i] = summary(lm(y ~ X[,i]))$r.squared
+}
+print(R2)
+```
+
+## NOMOR 3 BAGIAN C
+```{r}
+# Model Criterion Function
+library(olsrr)
+
+# bentuk model dengan parameter yg lengkap
+full_model <- lm(stunting ~ ., data = df3)
+
+ # membuat function kriteria pemilihan model
+model_criterion <- function(data, model, full_model){
+  
+  rss <- sum(residuals(model)^2)
+  n <- nrow(data)
+  k <- length(coef(model))
+  rss_full <- sum(residuals(full_model)^2)
+  k_full <- length(coef(full_model))
+  mse_full <- rss_full/(n - k_full)
+
+  cp <- (rss/mse_full) - (n - 2*k)
+  aic <- n*log(rss/n) + 2*k
+  sbc <- n*log(rss/n) + k*log(n)
+  press <- ols_press(model)
+  
+  r <- sqrt(summary(model)$r.squared)
+  r.square <- summary(model)$r.squared
+  adj.r.square <- summary(model)$adj.r.squared
+  se <- summary(model)$sigma
+  
+  result <- data.frame(
+    R = r,
+    R_Square = r.square,
+    Adj_R_Square = adj.r.square,
+    Residual_SE = se,
+    AIC = aic,
+    SBC = sbc,
+    CP_Mallows = cp,
+    PRESS = press
+  )
+  
+  print("Model Criterion:")
+  return(result)
+}
+```
+
+```{r}
+# Model 1
+model = lm(stunting ~ ., data = df3)
+summary(model)
+model_criterion(df3, model, full_model)
+```
+
+## NOMOR 3 BAGIAN D
+```{r fig.width = 12, fig.height = 10}
+# Diagnostic Checking Linearitas
+library(ggplot2) 
+library(GGally)
+ggpairs(df3, title = "Matriks Scatterplot Stunting", 
+        axisLabels = "show")
+cor(df3[,-1], method = "pearson")
+R2 = c()
+```
+
+```{r fig.width = 12, fig.height = 6}
+# Diagnostic Checking Normalitas Residual
+res1 = model$residual
+hist(res1, main = "Histogram Residual Model 1", 
+     xlab = "Residual", ylab = "Frekuensi", col = "skyblue")
+
+qqnorm(res1, main = "Normal Q-Q Plot Residual Model 1")
+qqline(res1)
+
+library(nortest)
+lillie.test(res1)
+```
+
+```{r fig.width = 12, fig.height = 6}
+# Diagnostic Checking Homoskedastisitas
+plot(model, 1)
+
+library(lmtest)
+bptest(model)
+```
+
+```{r}
+# Diagnostic Checking Autokorelasi
+library(car)
+durbinWatsonTest(model)
+```
+
+```{r}
+# Diagnostic Checking Multikolinearitas
+ols_vif_tol(model)
+```
+
+## NOMOR 3 BAGIAN E
+```{r}
+# Tidak terdapat perhitungan
+```
+

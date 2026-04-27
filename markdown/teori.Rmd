@@ -32,3 +32,49 @@ abline(lm(fitted.values(model3) ~ residuals(model3) - 1), col = "red")
 #res <- residuals(model3)
 #sum(res)
 ```
+
+```{r}
+library(openxlsx)
+df3 <- read.xlsx("C:/Users/BiliL/Downloads/Project Coding GitHub/Projek_Lain/art/data_excel.xlsx", sheet = 4)
+head(df3)
+```
+
+```{r}
+## Metode ggplot2 dan GGally
+library(ggplot2) 
+library(GGally)
+ggpairs(df3, title = "Matriks Scatterplot", 
+        axisLabels = "show")
+cor(df3[,-1], method = "pearson")
+
+R2 = c()
+```
+
+```{r}
+#Regresi Linear Berganda
+model3 = lm(Soma ~ ., data = df3)
+summary(model3)
+```
+
+```{r}
+# Data Testing
+data_test = data.frame(
+  WT2 = 16,
+  HT2 = 90,
+  WT9 = 33,
+  HT9 = 140,
+  ST9 = 72)
+
+y_pred = predict(model3, newdata = data_test)
+y_pred
+```
+
+```{r}
+X1baru <- c(89, 66, 78, 111, 44, 77, 80, 66, 109, 76)
+X2baru <- c(4, 1, 3, 6, 1, 3, 3, 2, 5, 3)
+Ybaru <- c(7, 5.4, 6.6, 7.4, 4.8, 6.4, 7, 5.6, 7.3, 6.4)
+df4 = data.frame(Y = Ybaru, X1 = X1baru, X2 = X2baru)
+model4 = lm(Y ~ ., data = df4)
+summary(model4)
+```
+
