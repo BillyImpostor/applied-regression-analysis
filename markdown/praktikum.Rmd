@@ -198,3 +198,247 @@ summary(model6)
 sqrt(summary(model6)$r.squared)
 ```
 
+# PERTEMUAN 6 SELEKSI SEKUENSIAL
+```{r}
+# Load Dataset
+library(openxlsx)
+df6 = read.xlsx(
+"C:\\Users\\BiliL\\Downloads\\Project Coding GitHub\\Praktikum_ART\\applied-regression-analysis\\data\\Pertemuan 6 - Dataset.xlsx")
+head(df6)
+```
+
+```{r}
+# Membuat Base Model
+baseModel = lm(BCM ~ 1, df6)
+model <- lm(BCM ~ ., data = df6)
+baseModel
+model
+```
+
+
+```{r}
+# Metode Forward (Tanpa Library)
+step(baseModel, scope = list(upper = model, lower = ~ 1), direction = "forward")
+```
+
+```{r}
+# Metode Backward (Tanpa Library)
+step(model, direction = "backward")
+```
+
+```{r}
+# All Possible Regression
+library(olsrr)
+ols_step_all_possible(model)
+```
+
+```{r}
+# Metode Forward (Dengan Library)
+# Stepwise Forward Selection berdasarkan p-value
+ols_step_forward_p(model)
+```
+
+
+```{r}
+# Metode Backward (Dengan Library)
+# Stepwise Backward Selection berdasarkan p-value
+ols_step_backward_p(model)
+```
+
+
+```{r}
+# Metode Stepwise (Dengan Library)
+# Stepwise Regression berdasarkan p-value
+ols_step_both_p(model)
+```
+
+# PERTEMUAN 7 REGRESI POLINOMIAL
+```{r}
+# Load Dataset
+library(openxlsx)
+df7_1 = read.xlsx(
+"C:\\Users\\BiliL\\Downloads\\Project Coding GitHub\\Praktikum_ART\\applied-regression-analysis\\data\\Pertemuan 7 - Dataset.xlsx", sheet = 1)
+head(df7_1)
+
+df7_2 = read.xlsx(
+"C:\\Users\\BiliL\\Downloads\\Project Coding GitHub\\Praktikum_ART\\applied-regression-analysis\\data\\Pertemuan 7 - Dataset.xlsx", sheet = 2)
+head(df7_2)
+```
+
+```{r}
+# Variabel Dependen
+Y = df7_1$Nilai.Try.Out
+# Variabel Independen
+X = df7_1$Lama.Belajar
+```
+
+```{r}
+# Scatter Plot
+plot(X, Y, main="Scatterplot Uji Linearitas",
+     xlab="Lama Belajar", ylab="Nilai Try Out", pch=19)
+abline(lm(Y~X), col="blue")
+```
+
+```{r}
+# Pembentukan Model
+poly2 = lm(Y ~ poly(X, 2, raw = TRUE))
+summary(poly2)
+sqrt(summary(poly2)$r.squared)
+```
+
+```{r}
+# Visualisasi Model
+pred2 = predict(poly2, newdata = list(x=X))
+plot(X, Y, main="Degree-2 Polynomial",
+     xlab="Study Hours", ylab="Exam Scores", pch=19)
+lines(X, pred2, lwd = 2, col = "red")  
+```
+
+```{r}
+# Variabel Dependen
+Y = df7_2$Tensile.Strength
+# Variabel Independen
+X = df7_2$Hardwood.Concentration
+```
+
+```{r}
+# Scatter Plot 
+plot(X, Y, main="Scatterplot Uji Linearitas",
+     xlab="Hardwood Concentration", ylab="Tensile Strength", pch=19)
+abline(lm(Y~X), col="blue")
+```
+
+```{r}
+# Pembentukan Model
+## Orde 1
+poly1 = lm(Y ~ X)
+summary(poly1)
+sqrt(summary(poly1)$r.squared)
+mean(poly1$residuals^2)
+
+## Orde 2
+poly2 = lm(Y ~ poly(X, 2, raw = TRUE))
+summary(poly2)
+sqrt(summary(poly2)$r.squared) # Nilai R
+mean(poly2$residuals^2)
+
+## Orde 3
+poly3 = lm(Y ~ poly(X, 3, raw = TRUE))
+summary(poly3)
+sqrt(summary(poly3)$r.squared) # Nilai R
+mean(poly3$residuals^2)
+
+## Orde 4
+poly4 = lm(Y ~ poly(X, 4, raw = TRUE))
+summary(poly4)
+sqrt(summary(poly4)$r.squared) # Nilai R
+mean(poly4$residuals^2)
+
+## Orde 5
+poly5 = lm(Y ~ poly(X, 5, raw = TRUE))
+summary(poly5)
+sqrt(summary(poly5)$r.squared) # Nilai R
+mean(poly5$residuals^2)
+```
+
+```{r}
+# Gabungkan model ke dalam list
+models <- list(
+  "Orde 1" = poly1,
+  "Orde 2" = poly2,
+  "Orde 3" = poly3,
+  "Orde 4" = poly4,
+  "Orde 5" = poly5
+)
+
+# Fungsi untuk mengambil metrik evaluasi
+get_metrics <- function(model) {
+  s <- summary(model)
+  
+  r_square <- s$r.squared
+  adj_r_square <- s$adj.r.squared
+  r_value <- sqrt(r_square)
+  rse <- s$sigma
+  mse <- mean(model$residuals^2)
+  
+  return(c(
+    R = r_value,
+    R_Square = r_square,
+    Adj_R_Square = adj_r_square,
+    RSE = rse,
+    MSE = mse
+  ))
+}
+
+# Buat tabel perbandingan
+model_comparison <- as.data.frame(
+  t(sapply(models, get_metrics))
+)
+
+# Rapikan hasil
+model_comparison$Model <- rownames(model_comparison)
+rownames(model_comparison) <- NULL
+
+model_comparison <- model_comparison[, c(
+  "Model", "R", "R_Square", "Adj_R_Square", "RSE", "MSE"
+)]
+
+model_comparison
+```
+
+```{r}
+# ===================== Model dengan Orde 3 ===================== #
+## Model 1
+poly3 = lm(Y ~ poly(X, 3, raw = TRUE))
+summary(poly3)
+sqrt(summary(poly3)$r.squared)
+# Konstanta tidak signifikan
+
+## Model 2
+poly3.2 = lm(Y ~ poly(X, 3, raw = TRUE)-1) # -1 di sini berfungsi agar konstanta tidak digunakan pada model
+summary(poly3.2)
+sqrt(summary(poly3.2)$r.squared)
+# Koefisien x^2 tidak signifikan
+
+## Model 3
+poly3.3 = lm(Y ~ I(X) + I(X^3) - 1) # buat model secara manual agar X^2 tidak ikut menjadi model polynom
+summary(poly3.3)
+sqrt(summary(poly3.3)$r.squared)
+```
+
+```{r}
+# Diagnostic Checking
+# Hubungan Variabel Dependen dan Independen
+pred = predict(poly3.3, newdata = list(x=X))
+plot(X, Y, main="Degree-3 Polynomial",
+     xlab="Hardwood Concentration", ylab="Tensile Strength", pch=19)
+lines(X, pred, lwd = 2, col = "red")
+```
+
+```{r}
+# Normalitas residual
+poly3.3$residual
+## Metode Histogram
+hist(poly3.3$residual, main = "Histogram Residual", 
+     xlab = "Residual", ylab = "Frekuensi", col = "lightblue")
+## Metode QQ-Plot
+qqnorm(poly3.3$residual, main = "Normal Q-Q Plot Residual")
+qqline(poly3.3$residual)
+## Metode Inferensi, menggunakan Shapiro-Wilk Test karena sampel < 50
+shapiro.test(poly3.3$residual)
+```
+
+```{r}
+# No-Autokorelasi Error
+library(car)
+durbinWatsonTest(poly3.3)
+```
+
+```{r}
+# Runs test
+# install.packages("randtests")
+library(randtests)
+runs.test(residuals(poly3.3))
+```
+
+

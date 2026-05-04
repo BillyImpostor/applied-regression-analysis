@@ -36,7 +36,7 @@ for (i in 1:ncol(X)){
 }
 print(R2)
 
-# Pembentukan Model
+# ============================ Pembentukan Model ============================ VERSI LAMA
 # Model Criterion Function
 library(olsrr)
 model_criterion <- function(data, model){
@@ -58,15 +58,60 @@ model_criterion <- function(data, model){
   print("Model Criterion for Model:")
   return(result)
 }
+# ============================ Pembentukan Model ============================ VERSI LAMA
 
-# model_criterion(data,model)
+
+# ============================ Pembentukan Model ============================ VERSI BARU
+# Model Criterion Function
+library(olsrr)
+
+# bentuk model dengan parameter yg lengkap
+full_model <- lm(stunting ~ ., data = df3)
+
+# membuat function kriteria pemilihan model
+model_criterion <- function(data, model, full_model){
+  
+  rss <- sum(residuals(model)^2)
+  n <- nrow(data)
+  k <- length(coef(model))
+  rss_full <- sum(residuals(full_model)^2)
+  k_full <- length(coef(full_model))
+  mse_full <- rss_full/(n - k_full)
+  
+  cp <- (rss/mse_full) - (n - 2*k)
+  aic <- n*log(rss/n) + 2*k
+  sbc <- n*log(rss/n) + k*log(n)
+  press <- ols_press(model)
+  
+  r <- sqrt(summary(model)$r.squared)
+  r.square <- summary(model)$r.squared
+  adj.r.square <- summary(model)$adj.r.squared
+  se <- summary(model)$sigma
+  
+  result <- data.frame(
+    R = r,
+    R_Square = r.square,
+    Adj_R_Square = adj.r.square,
+    Residual_SE = se,
+    AIC = aic,
+    SBC = sbc,
+    CP_Mallows = cp,
+    PRESS = press
+  )
+  
+  print("Model Criterion:")
+  return(result)
+}
+# ============================ Pembentukan Model ============================ VERSI BARU
+
+# model_criterion(data,model) ============================ VERSI BARU
 
 df_modelling <- df
 
 # Model I
 model1 <- lm(BCM ~ ., data = df_modelling)
 summary(model1)
-model_criterion(df_modelling,model1)
+model_criterion(df_modelling,model1,full_model)
 
 # Model II
 # Drop PA Column
@@ -74,20 +119,20 @@ library(dplyr)
 df_modelling <- select(df_modelling, -PA)
 model2 = lm(BCM ~ ., data = df_modelling)
 summary(model2)
-model_criterion(df_modelling,model2)
+model_criterion(df_modelling,model2,full_model)
 
 # Model III
 # Drop USD_BCM Column
 df_modelling <- select(df_modelling, -USD_BCM)
 model3 = lm(BCM ~ ., data = df_modelling)
 summary(model3)
-model_criterion(df_modelling,model3)
+model_criterion(df_modelling,model3,full_model)
 
 # Model IV
 # Drop Constant
 model4 = lm(BCM ~ 0+., data = df_modelling)
 summary(model4)
-model_criterion(df_modelling,model4)
+model_criterion(df_modelling,model4,full_model)
 
 # Overall Test
 overall_p <- function(my_model) {
@@ -142,7 +187,7 @@ est_coef(model2)
 est_coef(model3)
 est_coef(model4)
 
-# ===================== CONTOH KASUS 2 ======================
+# ===================== CONTOH KASUS 2 ====================== VERSI LAMA
 
 #Import Data
 library(openxlsx)

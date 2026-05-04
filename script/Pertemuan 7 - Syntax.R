@@ -1,7 +1,7 @@
 library(openxlsx)
 # Polynomial Regression #
 ## Contoh Kasus 1
-data1 = read.xlsx("C:/Users/ASUS/Downloads/Dataset Pertemuan 7 Polynomial & Central Method Regression.xlsx", 1)
+data1 = read.xlsx("D:/KULIAH/SEMESTER 4/ASPRAK ART/Dataset Pertemuan 7 Polynomial & Central Method Regression.xlsx", 1)
 data1
 
 # Variabel Dependen
@@ -25,9 +25,10 @@ plot(X, Y, main="Degree-2 Polynomial",
      xlab="Study Hours", ylab="Exam Scores", pch=19)
 lines(X, pred2, lwd = 2, col = "red")  
 
+
 ### --- ###
 ## Contoh Kasus 2
-data2 = read.xlsx("C:/Users/ASUS/Downloads/Dataset Pertemuan 7 Polynomial & Central Method Regression.xlsx", 2)
+data2 = read.xlsx("D:/KULIAH/SEMESTER 4/ASPRAK ART/Dataset Pertemuan 7 Polynomial & Central Method Regression.xlsx", 2)
 data2
 
 # Variabel Dependen
@@ -112,7 +113,7 @@ model_comparison <- model_comparison[, c(
   "Model", "R", "R_Square", "Adj_R_Square", "RSE", "MSE"
 )]
 
-model_comparison
+View(model_comparison)
 
 
 # ===================== Model dengan Orde 3 ===================== #
@@ -123,13 +124,13 @@ sqrt(summary(poly3)$r.squared)
 # Konstanta tidak signifikan
 
 ## Model 2
-poly3.2 = lm(Y ~  poly(X, 3, raw = TRUE)-1)
+poly3.2 = lm(Y ~ poly(X, 3, raw = TRUE)-1) # -1 di sini berfungsi agar konstanta tidak digunakan pada model
 summary(poly3.2)
 sqrt(summary(poly3.2)$r.squared)
-# konstanta tidak signifikan. keluarkan konstanta terlebih dahulu
+# Koefisien x^2 tidak signifikan
 
 ## Model 3
-poly3.3 = lm(Y ~ I(X) + I(X^3) -1) # buat model secara manual agar X^2 tidak ikut menjadi model polynom
+poly3.3 = lm(Y ~ I(X) + I(X^3) - 1) # buat model secara manual agar X^2 tidak ikut menjadi model polynom
 summary(poly3.3)
 sqrt(summary(poly3.3)$r.squared)
 
@@ -150,7 +151,15 @@ overall_test$P.Value = c(overall_p(poly3),
 print(overall_test)
 
 # Uji Parsial untuk Konstanta
-summary(poly3)$coefficients[1,4]
+intercept_p <- function(my_model) {
+  p <- summary(my_model)$coefficients[1,4]
+  return(p)
+}
+partial_test = data.frame(matrix(ncol = 2, nrow = 3))
+colnames(partial_test) = c("Model", "P.Value")
+partial_test$Model = c("Model 1", "Model 2", "Model 3")
+partial_test$P.Value = c(intercept_p(poly3)) # hanya model pertama karena konstanta dibuang pada model kedua
+print(partial_test)
 
 # Uji Parsial untuk Koefisien
 coef_p <- function(my_model) {
@@ -171,7 +180,7 @@ lines(X, pred, lwd = 2, col = "red")
 # Normalitas residual
 poly3.3$residual
 ## Metode Histogram
-hist(poly3$residual, main = "Histogram Residual", 
+hist(poly3.3$residual, main = "Histogram Residual", 
      xlab = "Residual", ylab = "Frekuensi", col = "lightblue")
 ## Metode QQ-Plot
 qqnorm(poly3.3$residual, main = "Normal Q-Q Plot Residual")
@@ -188,8 +197,10 @@ library(lmtest)
 bptest(poly3.3)
 
 # Runs test
-#library(devtools)
+#install.packages("devtools")
+library(devtools)
 #devtools::install_github("vc1492a/runstest-R")
+install.packages("runstest")
 library(runstest)
 runsTest(poly3.3)
 
@@ -214,13 +225,12 @@ data2$C_hwconc = data2$Hardwood.Concentration - mean(data2$Hardwood.Concentratio
 # Variabel Dependen
 Y = data2$Tensile.Strength
 # Variabel Independen
-X = data2$C_hwconc
+Xc = data2$C_hwconc
 
 # Pembentukan Model
-poly3.3C = lm(Y ~ I(X) + I(X^3) - 1)
+poly3.3C = lm(Y ~ I(Xc) + I(Xc^3) - 1)
 summary(poly3.3C)
 sqrt(summary(poly3.3C)$r.squared)
 
 # Cek Multkolinearitas
 vif(poly3.3C)
-

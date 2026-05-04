@@ -1,0 +1,247 @@
+---
+title: "Kuis 1 Praktikum Analisis Regresi Terapan"
+author: "Cheisa Billy Putra Antoni"
+date: "2026-05-04"
+output: html_document
+---
+
+# NOMOR 2
+```{r}
+# Load Dataset
+library(readxl)
+df2 = read_xlsx("C:/Users/BiliL/Downloads/Project Coding GitHub/Praktikum_ART/applied-regression-analysis/data/Dataset Bagian II Kuis Prak ART.xlsx", sheet = 2)
+head(df2)
+```
+
+```{r}
+# Membuat model regresi
+baseModel = lm(Skor_KM ~ 1, df)
+model <- lm(Skor_KM ~ ., data = df2)
+baseModel
+model
+```
+
+```{r}
+# Forward stepwise selection
+step(baseModel,scope=list(upper=model,lower=~1),direction="forward")
+```
+
+```{r}
+# Backward stepwise elimination
+step(model, direction="backward")
+```
+
+```{r}
+# All Possible Regression
+library(olsrr)
+ols_step_all_possible(model)
+# Best Subset Regression
+ols_step_best_subset(model)
+```
+
+```{r}
+# Model Final
+model_final <- lm(Skor_KM ~ Aktivitas_Fisik + Indeks_Stres + Dukungan_Sosial, data = df2)
+summary(model_final)
+```
+
+```{r}
+# Data Predict
+data_test = data.frame(
+  Durasi_Tidur = 45.0,
+  Aktivitas_Fisik = 30.0,
+  Indeks_Stres = 75.0,
+  Dukungan_Sosial = 40.0,
+  Konsumsi_Gadget = 85.0
+)
+
+predict(model_final, data_test)
+```
+
+# NOMOR 3
+```{r}
+# Load Dataset
+library(readxl)
+df3 = read_xlsx("C:/Users/BiliL/Downloads/Project Coding GitHub/Praktikum_ART/applied-regression-analysis/data/Dataset Kuis Bagian III.xlsx", sheet = 1)
+head(df3)
+```
+
+```{r}
+# Variabel Dependen
+Y = df3$Car_Max_Speed
+# Variabel Independen
+X = df3$Car_Price
+```
+
+```{r}
+# Scatter Plot
+plot(X, Y, main="Scatterplot Uji Linearitas",
+     xlab="Harga Mobil", ylab="Kecepatan Maksimal Mobil", pch=19)
+abline(lm(Y~X), col="blue")
+```
+
+```{r}
+# Pembentukan Model
+## Orde 1
+poly1 = lm(Y ~ X)
+summary(poly1)
+sqrt(summary(poly1)$r.squared)
+mean(poly1$residuals^2)
+
+## Orde 2
+poly2 = lm(Y ~ poly(X, 2, raw = TRUE))
+summary(poly2)
+sqrt(summary(poly2)$r.squared) # Nilai R
+mean(poly2$residuals^2)
+
+## Orde 3
+poly3 = lm(Y ~ poly(X, 3, raw = TRUE))
+summary(poly3)
+sqrt(summary(poly3)$r.squared) # Nilai R
+mean(poly3$residuals^2)
+
+## Orde 4
+poly4 = lm(Y ~ poly(X, 4, raw = TRUE))
+summary(poly4)
+sqrt(summary(poly4)$r.squared) # Nilai R
+mean(poly4$residuals^2)
+
+## Orde 5
+poly5 = lm(Y ~ poly(X, 5, raw = TRUE))
+summary(poly5)
+sqrt(summary(poly5)$r.squared) # Nilai R
+mean(poly5$residuals^2)
+
+## Orde 6
+poly6 = lm(Y ~ poly(X, 6, raw = TRUE))
+summary(poly6)
+sqrt(summary(poly6)$r.squared) # Nilai R
+mean(poly6$residuals^2)
+
+# Gabungkan model ke dalam list
+models <- list(
+  "Orde 1" = poly1,
+  "Orde 2" = poly2,
+  "Orde 3" = poly3,
+  "Orde 4" = poly4,
+  "Orde 5" = poly5,
+  "Orde 6" = poly6
+)
+
+# Fungsi untuk mengambil metrik evaluasi
+get_metrics <- function(model) {
+  s <- summary(model)
+  
+  r_square <- s$r.squared
+  adj_r_square <- s$adj.r.squared
+  r_value <- sqrt(r_square)
+  rse <- s$sigma
+  mse <- mean(model$residuals^2)
+  
+  return(c(
+    R = r_value,
+    R_Square = r_square,
+    Adj_R_Square = adj_r_square,
+    RSE = rse,
+    MSE = mse
+  ))
+}
+
+# Buat tabel perbandingan
+model_comparison <- as.data.frame(
+  t(sapply(models, get_metrics))
+)
+
+# Rapikan hasil
+model_comparison$Model <- rownames(model_comparison)
+rownames(model_comparison) <- NULL
+
+model_comparison <- model_comparison[, c(
+  "Model", "R", "R_Square", "Adj_R_Square", "RSE", "MSE"
+)]
+
+model_comparison
+```
+
+```{r}
+# Model Terbaik
+poly4 = lm(Y ~ poly(X, 4, raw = TRUE))
+summary(poly4)
+sqrt(summary(poly4)$r.squared)
+```
+
+```{r}
+# Hubungan Variabel Dependen dan Independen
+pred = predict(poly4, newdata = list(x=X))
+plot(X, Y, main="Degree-4 Polynomial",
+     xlab="Harga Mobil", ylab="Kecepatan Maksimal Mobil", pch=19)
+lines(X, pred, lwd = 2, col = "red")
+```
+
+```{r}
+# Normalitas residual
+poly4$residual
+## Metode Histogram
+hist(poly4$residual, main = "Histogram Residual", 
+     xlab = "Residual", ylab = "Frekuensi", col = "lightblue")
+## Metode QQ-Plot
+qqnorm(poly4$residual, main = "Normal Q-Q Plot Residual")
+qqline(poly4$residual)
+## Metode Inferensi, menggunakan Shapiro-Wilk Test karena sampel < 50
+shapiro.test(poly4$residual)
+```
+
+```{r}
+# Homoskedastisitas
+## Metode Plot Residuals vs Fitted
+plot(poly4, 1)
+
+## Metode Inferensi
+library(lmtest)
+bptest(poly4)
+```
+
+```{r}
+# No-Autokorelasi Error
+library(car)
+durbinWatsonTest(poly4)
+```
+
+```{r}
+# Run Test
+# install.packages("devtools")
+# library(devtools)
+# devtools::install_github("vc1492a/runstest-R")
+# library(runstest)
+# runsTest(poly4)
+# KARENA GABISA AKU PAKAI SYNTAX RUNTEST SISA LATIHAN KEMARIN
+library(randtests)
+runs.test(residuals(poly4))
+```
+
+```{r}
+# No Multkolinearitas
+poly4x = lm(Y ~ I(X) + I(X^2) + I(X^3) + I(X^4))
+vif(poly4x)
+```
+
+```{r}
+# Center Mean Regression
+df3$C = df3$Car_Price - mean(df3$Car_Price)
+# Variabel Dependen
+Y = df3$Car_Max_Speed
+# Variabel Independen
+Xc = df3$C
+```
+
+```{r}
+# Pembentukan Model Center Mean Regression
+poly4C = lm(Y ~ I(Xc) + I(Xc^2) + I(Xc^3) + I(Xc^4))
+summary(poly4C)
+sqrt(summary(poly4C)$r.squared)
+```
+
+```{r}
+# Cek Multkolinearitas
+vif(poly4C)
+```
