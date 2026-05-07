@@ -15,7 +15,7 @@ head(df2)
 
 ```{r}
 # Membuat model regresi
-baseModel = lm(Skor_KM ~ 1, df)
+baseModel = lm(Skor_KM ~ 1, df2)
 model <- lm(Skor_KM ~ ., data = df2)
 baseModel
 model
