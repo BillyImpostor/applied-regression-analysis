@@ -1,0 +1,1930 @@
+---
+title: "Laprak UAS Praktikum Analisis Regresi Terapan"
+author: "Cheisa Billy Putra Antoni"
+date: "2026-05-30"
+output: html_document
+---
+
+# SOAL NOMOR 1
+```{r}
+# Load Dataset 1
+df1 = read.csv("C:/Users/BiliL/Downloads/Project Coding GitHub/Praktikum_ART/applied-regression-analysis/data/Dataset Laprak UAS Nomor 1.csv")
+head(df1)
+```
+
+```{r}
+# Missing Value
+sum(is.na(df1))
+```
+
+```{r}
+# Treatment Use Median
+library(dplyr)
+df1 <- df1 %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+sum(is.na(df1))
+```
+
+## NOMOR 1 BAGIAN B
+```{r}
+# Base Model & Full Model
+baseModel <- lm(Exam_Score ~ 1, data = df1)
+fullmodel <- lm(Exam_Score ~ ., data = df1)
+baseModel
+fullmodel
+```
+
+## NOMOR 1 BAGIAN C
+```{r}
+# Forward Stepwise Tanpa Library
+step(baseModel, scope = list(upper = fullmodel, lower = ~1), direction = "forward")
+```
+
+## NOMOR 1 BAGIAN D
+```{r}
+# Dengan Library
+library(olsrr)
+
+# Best Subset Regression
+ols_step_best_subset(fullmodel)
+```
+
+```{r}
+# Forward AIC
+ols_step_forward_aic(fullmodel)
+
+# Backward AIC
+ols_step_backward_aic(fullmodel)
+
+# Stepwise AIC
+ols_step_both_aic(fullmodel)
+```
+
+# SOAL NOMOR 2
+```{r}
+# Load Dataset 2
+library(readxl)
+df2 = read_xlsx("C:/Users/BiliL/Downloads/Project Coding GitHub/Praktikum_ART/applied-regression-analysis/data/Dataset Laprak UAS ART.xlsx")
+df2$`Indeks Harga Barang Impor` <- as.numeric(df2$`Indeks Harga Barang Impor`)
+head(df2)
+```
+
+## NOMOR 2 BAGIAN A
+```{r fig.width = 12, fig.height = 6}
+# Scatter Plot
+Y <- df2$`Indeks Harga Barang Impor`
+X <- df2$`Nilai Tukar Rupiah (IDR/USD)`
+
+options(scipen = 999)
+plot(X, Y, main = "Scatterplot Antara Indeks Harga Barang Impor Dengan Nilai Tukar Rupiah",
+     ylab = "Indeks Harga Barang Impor", xlab = "Nilai Tukar Rupiah (IDR/USD)", pch = 19)
+abline(lm(Y ~ X), col = "blue")
+```
+
+## NOMOR 2 BAGIAN B
+```{r}
+# Pembentukan Model
+## Orde 1
+poly1 = lm(Y ~ X)
+summary(poly1)
+sqrt(summary(poly1)$r.squared)
+mean(poly1$residuals^2)
+
+## Orde 2
+poly2 = lm(Y ~ poly(X, 2, raw = TRUE))
+summary(poly2)
+sqrt(summary(poly2)$r.squared)
+mean(poly2$residuals^2)
+
+## Orde 3
+poly3 = lm(Y ~ poly(X, 3, raw = TRUE))
+summary(poly3)
+sqrt(summary(poly3)$r.squared)
+mean(poly3$residuals^2)
+
+## Orde 4
+poly4 = lm(Y ~ poly(X, 4, raw = TRUE))
+summary(poly4)
+sqrt(summary(poly4)$r.squared)
+mean(poly4$residuals^2)
+
+## Orde 5
+poly5 = lm(Y ~ poly(X, 5, raw = TRUE))
+summary(poly5)
+sqrt(summary(poly5)$r.squared)
+mean(poly5$residuals^2)
+
+# Gabungkan model ke dalam list
+models <- list(
+  "Orde 1" = poly1,
+  "Orde 2" = poly2,
+  "Orde 3" = poly3,
+  "Orde 4" = poly4,
+  "Orde 5" = poly5
+)
+
+# Fungsi untuk mengambil metrik evaluasi
+get_metrics <- function(model) {
+  s <- summary(model)
+  
+  r_square <- s$r.squared
+  adj_r_square <- s$adj.r.squared
+  r_value <- sqrt(r_square)
+  rse <- s$sigma
+  mse <- mean(model$residuals^2)
+  
+  return(c(
+    R = r_value,
+    R_Square = r_square,
+    Adj_R_Square = adj_r_square,
+    RSE = rse,
+    MSE = mse
+  ))
+}
+
+# Buat tabel perbandingan
+model_comparison <- as.data.frame(
+  t(sapply(models, get_metrics))
+)
+
+# Rapikan hasil
+model_comparison$Model <- rownames(model_comparison)
+rownames(model_comparison) <- NULL
+
+model_comparison <- model_comparison[, c(
+  "Model", "R", "R_Square", "Adj_R_Square", "RSE", "MSE"
+)]
+
+model_comparison
+```
+
+## NOMOR 2 BAGIAN C
+```{r}
+# Model Orde 3
+poly3 = lm(Y ~ poly(X, 3, raw = TRUE))
+summary(poly3)
+sqrt(summary(poly3)$r.squared)
+
+# Overall Test
+overall_p <- function(my_model) {
+  f <- summary(my_model)$fstatistic
+  p <- pf(f[1],f[2],f[3],lower.tail=F)
+  attributes(p) <- NULL
+  return(p)
+}
+
+overall_test = data.frame(matrix(ncol = 2, nrow = 1))
+colnames(overall_test) = c("Model", "P.Value_Overall")
+overall_test$Model = c("Model Orde 3")
+overall_test$P.Value_Overall = c(overall_p(poly3))
+print(overall_test)
+
+# Uji Parsial untuk Konstanta
+intercept_p <- function(my_model) {
+  p <- summary(my_model)$coefficients[1,4]
+  return(p)
+}
+partial_test = data.frame(matrix(ncol = 2, nrow = 1))
+colnames(partial_test) = c("Model", "P.Value_Parsial_Konstanta")
+partial_test$Model = c("Model Orde 3")
+partial_test$P.Value_Parsial_Konstanta = c(intercept_p(poly3))
+print(partial_test)
+
+# Uji Parsial untuk Koefisien
+coef_p <- function(my_model) {
+  p <- summary(my_model)$coefficients[-1,4]
+  return(round(p, 3))
+}
+coef_p(poly3)
+summary(poly3)$coefficients[,4]
+```
+
+## NOMOR 2 BAGIAN D
+```{r fig.width = 12, fig.height = 6}
+# Hubungan Variabel Dependen dan Independen
+pred = predict(poly3, newdata = list(x=X))
+plot(X, Y, main="Degree-3 Polynomial",
+     ylab = "Indeks Harga Barang Impor", xlab = "Nilai Tukar Rupiah (IDR/USD)", pch=19)
+lines(X, pred, lwd = 2, col = "red")
+```
+
+```{r fig.width = 12, fig.height = 6}
+# Normalitas Residual Metode Histogram
+hist(poly3$residual, main = "Histogram Residual", 
+     xlab = "Residual", ylab = "Frekuensi", col = "lightblue")
+
+# Normalitas Residual Metode QQ-Plot
+qqnorm(poly3$residual, main = "Normal Q-Q Plot Residual")
+qqline(poly3$residual)
+
+# Normalitas Residual Metode Inferensi (Kolmogorov-Smirnov)
+library(nortest)
+lillie.test(poly3$residuals)
+```
+
+```{r fig.width = 12, fig.height = 6}
+# Homoskedastisitas Metode Plot Residuals vs. Fitted
+plot(poly3, 1)
+
+# Homoskedastisitas Metode Inferensi
+library(lmtest)
+bptest(poly3)
+```
+
+```{r}
+# No-Autokorelasi Error
+library(car)
+durbinWatsonTest(poly3)
+```
+
+```{r}
+# No Multkolinearitas
+library(olsrr)
+ols_vif_tol(poly3)
+```
+
+## NOMOR 2 BAGIAN E
+```{r}
+# Center Mean Regression
+Y <- df2$`Indeks Harga Barang Impor`
+Xc <- df2$`Nilai Tukar Rupiah (IDR/USD)` - mean(df2$`Nilai Tukar Rupiah (IDR/USD)`)
+
+# Pembentukan Model Ulang
+poly3C = lm(Y ~ I(Xc) + I(Xc^2) + I(Xc^3))
+summary(poly3C)
+sqrt(summary(poly3C)$r.squared)
+```
+
+```{r}
+# Pembentukan Model Ulang 2
+poly3C.2 = lm(Y ~ I(Xc^2) + I(Xc^3))
+summary(poly3C.2)
+sqrt(summary(poly3C.2)$r.squared)
+```
+
+
+```{r}
+# Cek Multkolinearitas
+library(olsrr)
+ols_vif_tol(poly3C.2)
+```
+
+# SOAL NOMOR 3
+```{r}
+# Load Dataset 3
+data = read.csv("C:/Users/BiliL/Downloads/Project Coding GitHub/Praktikum_ART/applied-regression-analysis/data/data nomor 3.csv")
+head(data)
+```
+
+## NOMOR 3 BAGIAN A
+```{r fig.width = 12, fig.height = 6}
+# Scatter Plot
+Y <- data$Produksi.Sawit..Ton.ha.
+X <- data$Kelembapan.Tanah....
+
+options(scipen = 999)
+plot(X, Y, main = "Scatterplot Antara Produksi Sawit (ton/ha) Dengan Kelembapan Tanah (%)",
+     ylab = "Produksi Sawit (ton/ha)", xlab = "Kelembapan Tanah (%)", pch = 19)
+abline(lm(Y ~ X), col = "blue")
+```
+
+## NOMOR 3 BAGIAN B
+```{r}
+# Mengubah Nama Kolom
+library(dplyr)
+data <- data %>% 
+  rename(y = Produksi.Sawit..Ton.ha., 
+         x = Kelembapan.Tanah....)
+```
+
+### 1 KNOT
+```{r}
+# Spline Linear 1 Titik Knot
+GCV1=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  aa=rep(1,N)
+  data1=matrix(ncol=m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot1)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:nk1)
+  {
+    for (j in 1:m)
+    {
+      for (k in 1:N)
+      {
+        if(data[k,(j+para+1)]<knot1[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(j+para+1)]-knot1[i,j]
+      }
+    }
+    mx=as.matrix(cbind(aa,data2,data1))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot1))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 1 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot1[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot1[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=1)
+  datagcv1=matrix(ncol=m,nrow=N)
+  for (j in 1:m)
+  {
+    for (k in 1:N)
+    {
+      if (data[k,(j+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(j+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2,datagcv1))
+  
+  list(knotgcv=knotgcv1,mingcv=mingcv,mxgcv=mxgcv)
+}
+
+GCV1(data)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#Regresi Nonparametrik Spline Truncated 1 Titik Knot (Linear)
+#Estimasi Parameter
+
+estimasi=function(data, mx, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mx)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit)<-"thitung"
+  colnames(B)<-"parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=", sqrt(MSE), "Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=", pvalue,"\n")
+  yy=cbind(yhat, res)
+  list(res=res, yhat=yhat, Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV1(data)$mxgcv, 0.05, 'gcv')  #Koefisien Determinasinya adalah sebesar 34.66%
+
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
+
+```{r}
+# Spline Kuadratik 1 Titik Knot
+GCV1=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  aa=rep(1,N)
+  data1=matrix(ncol=m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot1)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:nk1)
+  {
+    for (j in 1:m)
+    {
+      for (k in 1:N)
+      {
+        if(data[k,(j+para+1)]<knot1[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(j+para+1)]-knot1[i,j]
+      }
+    }
+    mx=as.matrix(cbind(aa,data2,(data2^2),(data1^2)))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot1))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 1 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot1[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot1[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=1)
+  datagcv1=matrix(ncol=m,nrow=N)
+  for (j in 1:m)
+  {
+    for (k in 1:N)
+    {
+      if (data[k,(j+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(j+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2,(data2^2),(datagcv1^2)))
+  
+  list(knotgcv=knotgcv1,mingcv=mingcv,mxgcv=mxgcv)
+}
+
+GCV1(data)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#Regresi Nonparametrik Spline Truncated 1 Titik Knot (Kuadratik)
+#Estimasi Parameter
+
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit)<-"thitung"
+  colnames(B)<-"parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=",sqrt(MSE),"Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=",pvalue,"\n")
+  yy=cbind(yhat,res)
+  list(res=res,yhat=yhat,Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV1(data)$mxgcv, 0.05, 'gcv')  #Koefisien Determinasinya adalah sebesar 40.82%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+```
+
+```{r}
+# Spline Kubik 1 Titik Knot
+GCV1=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  aa=rep(1,N)
+  data1=matrix(ncol=m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot1)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:nk1)
+  {
+    for (j in 1:m)
+    {
+      for (k in 1:N)
+      {
+        if(data[k,(j+para+1)]<knot1[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(j+para+1)]-knot1[i,j]
+      }
+    }
+    mx=as.matrix(cbind(aa,data2,(data2^2),(data2^3),(data1^3)))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot1))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 1 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot1[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot1[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=1)
+  datagcv1=matrix(ncol=m,nrow=N)
+  for (j in 1:m)
+  {
+    for (k in 1:N)
+    {
+      if (data[k,(j+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(j+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2,(data2^2),(data2^3),(datagcv1^3)))
+  
+  list(knotgcv=knotgcv1,mingcv=mingcv,mxgcv=mxgcv)
+}
+
+GCV1(data)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#Regresi Nonparametrik Spline Truncated 1 Titik Knot (Kubik)
+#Estimasi Parameter
+
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit)<-"thitung"
+  colnames(B)<-"parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=",sqrt(MSE),"Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=", pvalue, "\n")
+  yy=cbind(yhat, res)
+  list(res=res, yhat=yhat, Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV1(data)$mxgcv, 0.05, 'gcv')  #Koefisien Determinasinya adalah sebesar 39.00%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
+
+### 2 KNOT
+```{r}
+# Spline Linear 2 Titik Knot
+GCV2=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  a2=nk-2
+  z=(a2*(a2-1)/2)
+  knot2=cbind(rep(NA,(z+1)))
+  for (i in (1:m))
+  {
+    knot=rbind(rep(NA,2))
+    for (j in 1:(a2-1))
+    {
+      for (k in (j+1):a2)
+      {
+        xx=cbind(knot1[j,i],knot1[k,i])
+        knot=rbind(knot,xx)
+      }
+    }
+    knot2=cbind(knot2,knot)
+  }
+  knot2=knot2[2:(z+1),2:(2*m+1)]  
+  a3=nrow(knot2)
+  aa=rep(1,N)
+  data1=matrix(ncol=2*m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot2)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:a3)
+  {
+    for (j in 1:(2*m))
+    {
+      if (mod(j,2)==1) b=floor(j/2)+1 else b=j/2
+      for (k in 1:N)
+      {
+        if(data[k,(b+para+1)]<knot2[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(b+para+1)]-knot2[i,j]
+      }
+    }
+    
+    mx=as.matrix(cbind(aa,data2,data1))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot2))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 2 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot2[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot2[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=2)
+  datagcv1=matrix(ncol=2*m,nrow=N)
+  for (j in 1:(2*m))
+  {
+    if(mod(j,2)==1) b=floor(j/2)+1 else b=j/2
+    for (k in 1:N)
+    {
+      if (data[k,(b+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(b+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2,datagcv1))
+ 
+  
+  list(knotgcv=knotgcv1,mingcv=mingcv,mxgcv=mxgcv)
+}
+
+GCV2(data) 
+
+#Regresi Nonparametrik Spline Truncated 2 Titik Knot (Linear)
+#Estimasi Parameter
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit)<-"thitung"
+  colnames(B)<-"parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=",sqrt(MSE),"Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=",pvalue,"\n")
+  yy=cbind(yhat,res)
+  list(res=res,yhat=yhat,Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV2(data)$mxgcv, 0.05, 'gcv') #Koefisien Determinasi sebesar 68.53%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
+
+```{r}
+# Spline Kuadrat 2 Titik Knot
+GCV2=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  a2=nk-2
+  z=(a2*(a2-1)/2)
+  knot2=cbind(rep(NA,(z+1)))
+  for (i in (1:m))
+  {
+    knot=rbind(rep(NA,2))
+    for (j in 1:(a2-1))
+    {
+      for (k in (j+1):a2)
+      {
+        xx=cbind(knot1[j,i],knot1[k,i])
+        knot=rbind(knot,xx)
+      }
+    }
+    knot2=cbind(knot2,knot)
+  }
+  knot2=knot2[2:(z+1),2:(2*m+1)]  
+  a3=nrow(knot2)
+  aa=rep(1,N)
+  data1=matrix(ncol=2*m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot2)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:a3)
+  {
+    for (j in 1:(2*m))
+    {
+      if (mod(j,2)==1) b=floor(j/2)+1 else b=j/2
+      for (k in 1:N)
+      {
+        if(data[k,(b+para+1)]<knot2[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(b+para+1)]-knot2[i,j]
+      }
+    }
+    
+    mx=as.matrix(cbind(aa,data2,(data2^2),(data1^2)))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot2))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 2 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot2[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot2[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=2)
+  datagcv1=matrix(ncol=2*m,nrow=N)
+  for (j in 1:(2*m))
+  {
+    if(mod(j,2)==1) b=floor(j/2)+1 else b=j/2
+    for (k in 1:N)
+    {
+      if (data[k,(b+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(b+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2,(data2^2),(datagcv1^2)))
+  
+  
+  list(knotgcv=knotgcv1,mingcv=mingcv,mxgcv=mxgcv)
+}
+
+GCV2(data) 
+
+#Regresi Nonparametrik Spline Truncated 2 Titik Knot (Kuadratik)
+#Estimasi Parameter
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit)<-"thitung"
+  colnames(B)<-"parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=", sqrt(MSE), "Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=", pvalue,"\n")
+  yy=cbind(yhat, res)
+  list(res=res, yhat=yhat, Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV2(data)$mxgcv, 0.05, 'gcv') #Koefisien Determinasi sebesar 63.19%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
+
+```{r}
+# Spline Kubik 2 Titik Knot
+GCV2=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  a2=nk-2
+  z=(a2*(a2-1)/2)
+  knot2=cbind(rep(NA,(z+1)))
+  for (i in (1:m))
+  {
+    knot=rbind(rep(NA,2))
+    for (j in 1:(a2-1))
+    {
+      for (k in (j+1):a2)
+      {
+        xx=cbind(knot1[j,i],knot1[k,i])
+        knot=rbind(knot,xx)
+      }
+    }
+    knot2=cbind(knot2,knot)
+  }
+  knot2=knot2[2:(z+1),2:(2*m+1)]  
+  a3=nrow(knot2)
+  aa=rep(1,N)
+  data1=matrix(ncol=2*m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot2)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:a3)
+  {
+    for (j in 1:(2*m))
+    {
+      if (mod(j,2)==1) b=floor(j/2)+1 else b=j/2
+      for (k in 1:N)
+      {
+        if(data[k,(b+para+1)]<knot2[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(b+para+1)]-knot2[i,j]
+      }
+    }
+    
+    mx=as.matrix(cbind(aa,data2,(data2^2),(data2^3),(data1^3)))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot2))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 2 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot2[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot2[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=2)
+  datagcv1=matrix(ncol=2*m,nrow=N)
+  for (j in 1:(2*m))
+  {
+    if(mod(j,2)==1) b=floor(j/2)+1 else b=j/2
+    for (k in 1:N)
+    {
+      if (data[k,(b+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(b+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2,(data2^2),(data2^3),(datagcv1^3)))
+  
+  
+  list(knotgcv=knotgcv1,mingcv=mingcv,mxgcv=mxgcv)
+}
+
+GCV2(data) 
+
+#Regresi Nonparametrik Spline Truncated 2 Titik Knot (Kubik)
+#Estimasi Parameter
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit)<-"thitung"
+  colnames(B)<-"parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=",sqrt(MSE),"Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=",pvalue,"\n")
+  yy=cbind(yhat,res)
+  list(res=res,yhat=yhat,Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV2(data)$mxgcv, 0.05, 'gcv') #Koefisien Determinasi sebesar 64.31%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
+
+### 3 KNOT
+```{r}
+# Spline Linear 3 Titik Knot
+GCV3=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  a2=nk-2
+  z=(a2*(a2-1)*(a2-2)/6)
+  knot2=cbind(rep(NA,(z+1)))
+  for (i in (1:m))
+  {
+    knot=rbind(rep(NA,3))
+    for (j in 1:(a2-2))
+    {
+      for (k in (j+1):(a2-1))
+      {
+        for (g in (k+1):a2)
+        {
+          xx=cbind(knot1[j,i],knot1[k,i],knot1[g,i])
+          knot=rbind(knot,xx)
+        }
+      }
+    }
+    knot2=cbind(knot2,knot)
+  }
+  knot2=knot2[2:(z+1),2:(3*m+1)]  
+  a3=nrow(knot2)
+  aa=rep(1,N)
+  data1=matrix(ncol=3*m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot2)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:a3)
+  {
+    for (j in 1:(3*m))
+    {
+      b=ceiling(j/3)
+      for (k in 1:N)
+      {
+        if(data[k,(b+para+1)]<knot2[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(b+para+1)]-knot2[i,j]
+      }
+    }
+    
+    mx=as.matrix(cbind(aa,data2,data1))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot2))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 3 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot2[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot2[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=3)
+  datagcv1=matrix(ncol=3*m,nrow=N)
+  for (j in 1:(3*m))
+  {
+    b=ceiling(j/3)
+    for (k in 1:N)
+    {
+      if (data[k,(b+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(b+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2,datagcv1))
+  
+  list(knotgcv=knotgcv1,mingcv=mingcv,mxgcv=mxgcv)
+}
+
+GCV3(data)
+
+#Regresi Nonparametrik Spline Truncated 3 Titik Knot (Linear)
+#Estimasi Parameter
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit)<-"thitung"
+  colnames(B)<-"parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=", sqrt(MSE), "Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=", pvalue,"\n")
+  yy=cbind(yhat, res)
+  list(res=res, yhat=yhat, Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV3(data)$mxgcv, 0.05, 'gcv') #Koefisien Determinasi sebesar 76.70%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+```
+
+```{r}
+# Spline Kuadrat 3 Titik Knot
+GCV3=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  a2=nk-2
+  z=(a2*(a2-1)*(a2-2)/6)
+  knot2=cbind(rep(NA,(z+1)))
+  for (i in (1:m))
+  {
+    knot=rbind(rep(NA,3))
+    for (j in 1:(a2-2))
+    {
+      for (k in (j+1):(a2-1))
+      {
+        for (g in (k+1):a2)
+        {
+          xx=cbind(knot1[j,i],knot1[k,i],knot1[g,i])
+          knot=rbind(knot,xx)
+        }
+      }
+    }
+    knot2=cbind(knot2,knot)
+  }
+  knot2=knot2[2:(z+1),2:(3*m+1)]  
+  a3=nrow(knot2)
+  aa=rep(1,N)
+  data1=matrix(ncol=3*m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot2)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:a3)
+  {
+    for (j in 1:(3*m))
+    {
+      b=ceiling(j/3)
+      for (k in 1:N)
+      {
+        if(data[k,(b+para+1)]<knot2[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(b+para+1)]-knot2[i,j]
+      }
+    }
+    
+    mx=as.matrix(cbind(aa, data2, (data2^2), (data1^2)))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV,Koef.Determinasi,MSE,knotke,knot2))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 3 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot2[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot2[dataG[1,4],])
+  knotgcv1=matrix(knotgcv,nrow=3)
+  datagcv1=matrix(ncol=3*m,nrow=N)
+  for (j in 1:(3*m))
+  {
+    b=ceiling(j/3)
+    for (k in 1:N)
+    {
+      if (data[k, (b+para+1)] < knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k, (b+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa,data2, (data2^2), (datagcv1^2)))
+  
+  list(knotgcv=knotgcv1, mingcv=mingcv, mxgcv=mxgcv)
+}
+
+GCV3(data)
+
+#Regresi Nonparametrik Spline Truncated 3 Titik Knot (Kuadratik)
+#Estimasi Parameter
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit, (n1-1), (n-n1), lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]), (n-n1), lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit) <- "thitung"
+  colnames(B) <- "parameter untuk Beta"
+  
+  tg1=cbind(B, thit, pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=", sqrt(MSE), "Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=", pvalue,"\n")
+  yy=cbind(yhat, res)
+  list(res=res, yhat=yhat, Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated=estimasi(data, GCV3(data)$mxgcv, 0.05, 'gcv') #Koefisien Determinasi sebesar 77.59%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+```
+
+```{r}
+# Spline Kubik 3 Titik Knot
+GCV3=function(data)
+{
+  library(Matrix)
+  library(pracma)
+  para=0
+  data=as.matrix(data)
+  N=length(data[,1]) #Banyaknya Observasi
+  M=2 #Banyaknya Kolom 
+  m=ncol(data)-para-1  #m=banyaknya variabel nonparametrik
+  dataA=data[,(para+2):M]
+  dataA=as.matrix(dataA)
+  F=diag(N)
+  nk=22 #Banyaknya alternatif titik knot yg akan dicoba
+  knot1=matrix(ncol=m,nrow=nk)
+  for (i in (1:m)) #Membuat knot
+  {
+    a=seq(min(dataA[,i]),max(dataA[,i]),length.out=nk)
+    knot1[,i]=t(as.matrix(a))
+  }
+  a1=length(knot1[,1])
+  knot1=as.matrix(knot1[2:(a1-1),])
+  a2=nk-2
+  z=(a2*(a2-1)*(a2-2)/6)
+  knot2=cbind(rep(NA,(z+1)))
+  for (i in (1:m))
+  {
+    knot=rbind(rep(NA,3))
+    for (j in 1:(a2-2))
+    {
+      for (k in (j+1):(a2-1))
+      {
+        for (g in (k+1):a2)
+        {
+          xx=cbind(knot1[j,i],knot1[k,i],knot1[g,i])
+          knot=rbind(knot,xx)
+        }
+      }
+    }
+    knot2=cbind(knot2,knot)
+  }
+  knot2=knot2[2:(z+1),2:(3*m+1)]  
+  a3=nrow(knot2)
+  aa=rep(1,N)
+  data1=matrix(ncol=3*m,nrow=N)
+  data2=data[,2:M] #Data yang variabel X saja
+  nk1=nrow(knot2)
+  GCV=as.matrix(rep(NA,nk1),ncol=1);colnames(GCV)<-"GCV"
+  MSE=as.matrix(rep(NA,nk1),ncol=1);colnames(MSE)<-"MSE"
+  SSE=rep(NA,nk1)
+  SST=rep(NA,nk1)
+  SSR=rep(NA,nk1)
+  Koef.Determinasi=as.matrix(rep(NA,nk1),ncol=1);colnames(Koef.Determinasi)<-"Koef.Determinasi"
+  knotke=matrix(c(1:nk1),ncol=1);colnames(knotke)<-"knot_ke"
+  for (i in 1:a3)
+  {
+    for (j in 1:(3*m))
+    {
+      b=ceiling(j/3)
+      for (k in 1:N)
+      {
+        if(data[k,(b+para+1)]<knot2[i,j]) data1[k,j]=0 else data1[k,j]=data[k,(b+para+1)]-knot2[i,j]
+      }
+    }
+    
+    mx=as.matrix(cbind(aa,data2,(data2^2),(data2^3),(data1^3)))
+    C=pinv(t(mx)%*%mx)
+    B=C%*%(t(mx)%*%data[,1])
+    ypred=mx%*%B
+    residual=data[,1]-ypred
+    SSE[i]=sum((residual)^2)
+    SSR[i]=sum((ypred-mean(data[,1]))^2)
+    SST[i]=sum((data[,1]-mean(data[,1]))^2)
+    MSE[i]=SSE[i]/(N)
+    Koef.Determinasi[i]=(SSR[i]/(SSR[i]+SSE[i]))
+    A=mx%*%C%*%t(mx)
+    A1=(F-A)
+    A2=(sum(diag(A1))/N)^2
+    GCV[i]=MSE[i]/A2
+    
+  }
+  dataAll=as.matrix(cbind(GCV, Koef.Determinasi, MSE, knotke, knot2))
+  dataG=dataAll[order(GCV),]
+  
+  cat("====================================================================================================================","\n")
+  cat("HASIL GCV terkecil dengan 3 titik knot","\n")
+  cat("====================================================================================================================","\n")
+  print(((dataG[1,1:4])))
+  cat("Dengan titik Knot","\n")
+  print((knot2[dataG[1,4],]))
+  cat("Nilai GCV 10 terkecil pertama","\n")
+  print(dataG[1:10,])
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  mingcv=dataG[1,1]
+  knotgcv=as.matrix(knot2[dataG[1,4],])
+  knotgcv1=matrix(knotgcv, nrow=3)
+  datagcv1=matrix(ncol=3*m, nrow=N)
+  for (j in 1:(3*m))
+  {
+    b=ceiling(j/3)
+    for (k in 1:N)
+    {
+      if (data[k,(b+para+1)]<knotgcv[j,1]) datagcv1[k,j]=0 else
+        datagcv1[k,j]=data[k,(b+para+1)]-knotgcv[j,1]
+    }
+  }
+  mxgcv=as.matrix(cbind(aa, data2, (data2^2), (data2^3), (datagcv1^3)))
+  
+  list(knotgcv=knotgcv1, mingcv=mingcv, mxgcv=mxgcv)
+}
+
+GCV3(data)
+
+#Regresi Nonparametrik Spline Truncated 3 Titik Knot (Kubik)
+#Estimasi Parameter
+
+estimasi=function(data, mxgcv, alpha, type)
+{
+  data=as.matrix(data)
+  n=nrow(data)
+  mx=as.matrix(mxgcv)
+  C=pinv(t(mx)%*%mx)
+  B=C%*%(t(mx)%*%data[,1])
+  cat("\n")
+  cat("\n")
+  cat("====================================================================================================================","\n")
+  cat("hasil estimasi parameter","\n")
+  cat("====================================================================================================================","\n")
+  n1=nrow(B)
+  yhat=mx%*%B
+  res=data[,1]-yhat
+  SSE=sum((res)^2)
+  SSR=sum((yhat-mean(data[,1]))^2)
+  SST=sum((data[,1]-mean(data[,1]))^2)
+  MSE=SSE/(n)
+  Koef.Determinasi=(SSR/(SSR+SSE))*100
+  MSR=SSR/(n1-1)
+  
+  #Uji Simultan
+  Fhit=MSR/MSE
+  pvalue=pf(Fhit,(n1-1),(n-n1),lower.tail=FALSE)
+  
+  #Uji Parsial
+  thit=rep(NA,n1)
+  pvaluee=rep(NA,n1)
+  MSE=as.numeric(MSE)
+  SE=sqrt(diag(MSE*(pinv(t(mx)%*%mx))))
+  for (i in 1:n1)
+  {
+    thit[i]=B[i,1]/SE[i]
+    pvaluee[i]=2*(pt(abs(thit[i]),(n-n1),lower.tail=FALSE))
+  }
+  thit=as.matrix(thit)
+  colnames(thit) <- "thitung"
+  colnames(B) <- "parameter untuk Beta"
+  
+  tg1=cbind(B,thit,pvaluee)
+  cat("====================================================================================================================","\n")
+  cat("Estimasi Parameter","\n")
+  cat("====================================================================================================================","\n")
+  print(tg1)
+  cat("\n")
+  cat("Analysis of Variance","\n")
+  cat("====================================================================================================================","\n")
+  cat("Sumber  ","df","\t","SS","\t","\t","MS","\t","\t","Fhit","\n")
+  cat("Regresi",(n1-1),"\t",SSR,"\t",MSR,"\t",Fhit,"\n")
+  cat("Error  ",n-n1,"\t",SSE,"\t",MSE,"\n")
+  cat("Total  ",n-n1,"\t",SST,"\n")
+  cat("====================================================================================================================","\n")
+  cat("s=", sqrt(MSE), "Rsq=", Koef.Determinasi,"\n")
+  cat("pvalue(F)=",pvalue,"\n")
+  yy=cbind(yhat, res)
+  list(res=res, yhat=yhat, Koef.Determinasi=Koef.Determinasi)
+}
+
+model_truncated = estimasi(data, GCV3(data)$mxgcv, 0.05, 'gcv') #Koefisien Determinasi sebesar 76.59%
+prediksi <- model_truncated$yhat
+plot(data$x, data$y)
+lines(data$x, prediksi, col="red")
+```
+
+## NOMOR 3 BAGIAN C
+```{r}
+# Pred
+knot1 <- 21.50224
+knot2 <- 38.20548
+b0 <- 1.97328083
+b1 <- 0.04092316
+b2 <- 0.14967637
+b3 <- -0.30824286
+
+# Fungsi truncated spline
+trunc <- function(x, knot) {
+  ifelse(x > knot, (x - knot), 0)
+}
+# Fungsi prediksi
+predict_spline <- function(x) {
+  y <- b0 + b1*x + b2*trunc(x, knot1) + b3*trunc(x, knot2) 
+  return(y)
+}
+
+# Prediksi Lahan Lama
+x_lama <- c(18, 27, 37, 51)  
+hasil_tabel1 <- data.frame(
+  x        = x_lama,
+  y_prediksi = round(predict_spline(x_lama), 6)
+)
+hasil_tabel1
+
+# Prediksi Lahan Baru
+x_baru <- c(21, 34, 46, 55)  
+hasil_tabel2 <- data.frame(
+  x        = x_baru,
+  y_prediksi = round(predict_spline(x_baru), 6)
+)
+hasil_tabel2
+```
+
