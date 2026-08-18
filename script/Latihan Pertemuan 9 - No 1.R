@@ -34,7 +34,8 @@ abline(v=15, lty=3)
 
 library(segmented)
 lin.mod <- lm(y~x)
-segmented.mod <- segmented(lin.mod, seg.Z = ~x, psi=14) # psi=14 bisa diilangin
+segmented.mod <- segmented(lin.mod, 
+                          seg.Z = ~x, psi=14) # psi=14 bisa diilangin
 summary(segmented.mod)
 
 plot(x,y, pch=16, ylim=c(5,20))
